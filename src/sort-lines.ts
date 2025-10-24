@@ -27,7 +27,8 @@ export function groupByIndentation(lines: string[]): IndentationNode[] {
   const stack: IndentationNode[] = [];
 
   for (const line of lines) {
-    // Calculate indentation level (counting leading spaces, tabs count as 1)
+    // Calculate indentation level (counting leading spaces)
+    // Note: Tabs are normalized to single spaces for consistent indentation comparison
     const match = line.match(/^(\s*)/);
     const indentStr = match ? match[1] : '';
     const indentLevel = indentStr.replace(/\t/g, ' ').length;
