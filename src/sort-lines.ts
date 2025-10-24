@@ -15,50 +15,6 @@ export interface IndentationNode {
   children: IndentationNode[];
 }
 
-/**
- * Groups file content by indentation level into a tree structure.
- * Each node represents a line and its children are lines with greater indentation.
- * 
- * @param lines - Array of strings representing file lines
- * @returns Array of root-level IndentationNodes
- */
-export function groupByIndentation(lines: string[]): IndentationNode[] {
-  const roots: IndentationNode[] = [];
-  const stack: IndentationNode[] = [];
-
-  for (const line of lines) {
-    // Calculate indentation level (counting leading spaces)
-    // Note: Tabs are normalized to single spaces for consistent indentation comparison
-    const match = line.match(/^(\s*)/);
-    const indentStr = match ? match[1] : '';
-    const indentLevel = indentStr.replace(/\t/g, ' ').length;
-
-    const node: IndentationNode = {
-      line,
-      indentLevel,
-      children: []
-    };
-
-    // Pop stack until we find the parent (node with indentation less than current)
-    while (stack.length > 0 && stack[stack.length - 1].indentLevel >= indentLevel) {
-      stack.pop();
-    }
-
-    // If stack is empty, this is a root node
-    if (stack.length === 0) {
-      roots.push(node);
-    } else {
-      // Otherwise, add as child to the node at top of stack
-      stack[stack.length - 1].children.push(node);
-    }
-
-    // Push current node to stack
-    stack.push(node);
-  }
-
-  return roots;
-}
-
 function makeSorter(algorithm?: SortingAlgorithm): ArrayTransformer {
   return function(lines: string[]): string[] {
     return lines.sort(algorithm);
@@ -190,6 +146,42 @@ function shuffleSorter(lines: string[]): string[] {
     return lines;
 }
 
+function sortYamlPreservingStructure(lines: string[]): string[] {
+  // Group lines by indentation to create tree structure
+  const roots = groupByIndentation(lines);
+  
+  // Sort nodes recursively while preserving structure
+  sortNodesRecursively(roots);
+  
+  // Flatten back to array of lines
+  return flattenNodes(roots);
+}
+
+function sortNodesRecursively(nodes: IndentationNode[]): void {
+  // Sort nodes at current level
+  nodes.sort((a, b) => a.line.localeCompare(b.line));
+  
+  // Recursively sort children of each node
+  for (const node of nodes) {
+    if (node.children.length > 0) {
+      sortNodesRecursively(node.children);
+    }
+  }
+}
+
+function flattenNodes(nodes: IndentationNode[]): string[] {
+  const result: string[] = [];
+  
+  for (const node of nodes) {
+    result.push(node.line);
+    if (node.children.length > 0) {
+      result.push(...flattenNodes(node.children));
+    }
+  }
+  
+  return result;
+}
+
 const transformerSequences = {
   sortNormal: [makeSorter()],
   sortUnique: [makeSorter(), removeDuplicates],
@@ -202,6 +194,7 @@ const transformerSequences = {
   sortVariableLengthReverse: [makeSorter(variableLengthReverseCompare)],
   sortNatural: [makeSorter(naturalCompare)],
   sortShuffle: [shuffleSorter],
+  sortYamlPreservingStructure: [sortYamlPreservingStructure],
   removeDuplicateLines: [removeDuplicates],
   keepOnlyDuplicateLines: [keepOnlyDuplicates],
   keepOnlyNotDuplicateLines: [keepOnlyNotDuplicates]
@@ -218,6 +211,51 @@ export const sortVariableLength = () => sortActiveSelection(transformerSequences
 export const sortVariableLengthReverse = () => sortActiveSelection(transformerSequences.sortVariableLengthReverse);
 export const sortNatural = () => sortActiveSelection(transformerSequences.sortNatural);
 export const sortShuffle = () => sortActiveSelection(transformerSequences.sortShuffle);
+export const sortYaml = () => sortActiveSelection(transformerSequences.sortYamlPreservingStructure);
 export const removeDuplicateLines = () => sortActiveSelection(transformerSequences.removeDuplicateLines);
 export const keepOnlyDuplicateLines = () => sortActiveSelection(transformerSequences.keepOnlyDuplicateLines);
 export const keepOnlyNotDuplicateLines = () => sortActiveSelection(transformerSequences.keepOnlyNotDuplicateLines);
+
+/**
+ * Groups file content by indentation level into a tree structure.
+ * Each node represents a line and its children are lines with greater indentation.
+ * 
+ * @param lines - Array of strings representing file lines
+ * @returns Array of root-level IndentationNodes
+ */
+export function groupByIndentation(lines: string[]): IndentationNode[] {
+  const roots: IndentationNode[] = [];
+  const stack: IndentationNode[] = [];
+
+  for (const line of lines) {
+    // Calculate indentation level (counting leading spaces)
+    // Note: Tabs are normalized to single spaces for consistent indentation comparison
+    const match = line.match(/^(\s*)/);
+    const indentStr = match ? match[1] : '';
+    const indentLevel = indentStr.replace(/\t/g, ' ').length;
+
+    const node: IndentationNode = {
+      line,
+      indentLevel,
+      children: []
+    };
+
+    // Pop stack until we find the parent (node with indentation less than current)
+    while (stack.length > 0 && stack[stack.length - 1].indentLevel >= indentLevel) {
+      stack.pop();
+    }
+
+    // If stack is empty, this is a root node
+    if (stack.length === 0) {
+      roots.push(node);
+    } else {
+      // Otherwise, add as child to the node at top of stack
+      stack[stack.length - 1].children.push(node);
+    }
+
+    // Push current node to stack
+    stack.push(node);
+  }
+
+  return roots;
+}
