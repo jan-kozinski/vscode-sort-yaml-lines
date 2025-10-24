@@ -3,6 +3,61 @@ import * as vscode from 'vscode';
 type ArrayTransformer = (lines: string[]) => string[];
 type SortingAlgorithm = (a: string, b: string) => number;
 
+/**
+ * Represents a node in the indentation tree structure
+ */
+export interface IndentationNode {
+  /** The text content of this line */
+  line: string;
+  /** The indentation level (number of leading spaces/tabs) */
+  indentLevel: number;
+  /** Child nodes with greater indentation */
+  children: IndentationNode[];
+}
+
+/**
+ * Groups file content by indentation level into a tree structure.
+ * Each node represents a line and its children are lines with greater indentation.
+ * 
+ * @param lines - Array of strings representing file lines
+ * @returns Array of root-level IndentationNodes
+ */
+export function groupByIndentation(lines: string[]): IndentationNode[] {
+  const roots: IndentationNode[] = [];
+  const stack: IndentationNode[] = [];
+
+  for (const line of lines) {
+    // Calculate indentation level (counting leading spaces, tabs count as 1)
+    const match = line.match(/^(\s*)/);
+    const indentStr = match ? match[1] : '';
+    const indentLevel = indentStr.replace(/\t/g, ' ').length;
+
+    const node: IndentationNode = {
+      line,
+      indentLevel,
+      children: []
+    };
+
+    // Pop stack until we find the parent (node with indentation less than current)
+    while (stack.length > 0 && stack[stack.length - 1].indentLevel >= indentLevel) {
+      stack.pop();
+    }
+
+    // If stack is empty, this is a root node
+    if (stack.length === 0) {
+      roots.push(node);
+    } else {
+      // Otherwise, add as child to the node at top of stack
+      stack[stack.length - 1].children.push(node);
+    }
+
+    // Push current node to stack
+    stack.push(node);
+  }
+
+  return roots;
+}
+
 function makeSorter(algorithm?: SortingAlgorithm): ArrayTransformer {
   return function(lines: string[]): string[] {
     return lines.sort(algorithm);
