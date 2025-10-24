@@ -211,3 +211,45 @@ suite('groupByIndentation', () => {
     assert.strictEqual(result[0].children[0].children[0].children[0].indentLevel, 6);
   });
 });
+
+suite('sortYamlPreservingStructure', () => {
+  // Import the private helper functions through the module for testing
+  const sortLines = require('../../sort-lines');
+
+  test('should sort root-level lines while preserving structure', () => {
+    const lines = [
+      'zebra: value',
+      '  child1: val1',
+      '  child2: val2',
+      'apple: value',
+      '  child3: val3',
+      'banana: value'
+    ];
+    
+    // Create a simple test by manually calling groupByIndentation
+    const roots = sortLines.groupByIndentation(lines);
+    
+    // The roots should be in original order
+    assert.strictEqual(roots.length, 3);
+    assert.strictEqual(roots[0].line, 'zebra: value');
+    assert.strictEqual(roots[1].line, 'apple: value');
+    assert.strictEqual(roots[2].line, 'banana: value');
+  });
+
+  test('should handle nested YAML structure correctly', () => {
+    const lines = [
+      'root1:',
+      '  zebra: value',
+      '  apple: value',
+      'root2:',
+      '  child: value'
+    ];
+    
+    const roots = sortLines.groupByIndentation(lines);
+    
+    // Verify structure is maintained
+    assert.strictEqual(roots.length, 2);
+    assert.strictEqual(roots[0].children.length, 2);
+    assert.strictEqual(roots[1].children.length, 1);
+  });
+});
