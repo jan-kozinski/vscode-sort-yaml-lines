@@ -91,6 +91,10 @@
       {
         "command": "sortLines.sortLinesShuffle",
         "title": "Sort lines (shuffle)"
+      },
+      {
+        "command": "sortLines.sortLinesYaml",
+        "title": "Sort lines (YAML preserving structure)"
       }
     ],
     "configuration": {
@@ -190,6 +194,10 @@
         {
           "command": "sortLines.sortLinesShuffle",
           "group": "2_sortLines@14"
+        },
+        {
+          "command": "sortLines.sortLinesYaml",
+          "group": "2_sortLines@15"
         }
       ]
     },
